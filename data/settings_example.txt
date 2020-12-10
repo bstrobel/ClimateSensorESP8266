@@ -1,0 +1,11 @@
+# Copy this file to settings.txt
+ssid MYWIFI
+pass geheim
+mqtt_server himbeere.fritz.box
+sensor_hostname cs-az
+mqtt_topic_stub home/climate/
+mqtt_stat_topic_stub home/status/
+low_voltage 3.3
+voltage_calibration_factor 5.0
+elevation 114
+sleep_time_seconds 20
