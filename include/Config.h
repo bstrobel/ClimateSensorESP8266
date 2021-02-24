@@ -57,6 +57,7 @@ public:
     const std::string &getSetting(const std::string &key);
     long getSettingAsLongInt(const std::string &key);
     float getSettingAsFloat(const std::string &key);
+	bool hasSettingValue(const std::string &key, const std::string &val);
     Config(const std::string &configFileName);
     virtual ~Config(){};
 };

@@ -37,6 +37,7 @@
 #include "common_def.h"
 #include "Config_ESP8266.h"
 #include "MeasureClimate.h"
+#include "MCWifiClient.h"
 #include "MCMQTTClient.h"
 #include <string>
 #include <iostream>
@@ -85,22 +86,9 @@ void setup()
 		Serial.println("done.");
 		Serial.print(mc.toString().c_str());
 
-		Serial.print("Opening the WiFi connection");
-		WiFi.mode(WIFI_STA);
-		WiFi.hostname(cfg.getSetting(CFG_KEY_SENSOR_HOSTNAME).c_str());
-		WiFi.begin(cfg.getSetting(CFG_KEY_SSID).c_str(), cfg.getSetting(CFG_KEY_PASS).c_str());
-		int i = 0;
-		while (WiFi.status() != WL_CONNECTED)
-		{
-			delay(WIFI_RETRY_DELAY_MSECS);
-			i++;
-			if (i > WIFI_NUM_RETRIES)
-			{
-				Serial.println("Could not connect to WiFi!");
-				return;
-			}
-			Serial.print(".");
-		}
+		Serial.print("Opening the WiFi connection...");
+		MCWifiClient wificlient(cfg.getSetting(CFG_KEY_SENSOR_HOSTNAME));
+		wificlient.connect(cfg.getSetting(CFG_KEY_SSID),cfg.getSetting(CFG_KEY_PASS));
 		Serial.println("connected!");
 
 		MCMQTTClient mqtt(
@@ -119,25 +107,34 @@ void setup()
 	{
 		Serial.println("Configuration error:");
 		Serial.println(ex.what());
+		sleepSeconds = 0; // nonrecoverable problem -> sleep forever
 	}
 	catch (MeasurementException &ex)
 	{
 		Serial.println("Measurement error:");
 		Serial.println(ex.what());
+		sleepSeconds = 0; // nonrecoverable problem -> sleep forever
 	}
 	catch (MCMQTTClientException &ex)
 	{
 		Serial.println("MQTT error:");
 		Serial.println(ex.what());
 	}
+	catch (MCWifiClientException &ex)
+	{
+		Serial.println("Wifi error:");
+		Serial.println(ex.what());
+	}
 	catch (exception &ex)
 	{
 		Serial.println("General error:");
 		Serial.println(ex.what());
+		sleepSeconds = 0; // nonrecoverable problem -> sleep forever
 	}
 	catch (...)
 	{
 		Serial.println("General error!");
+		sleepSeconds = 0; // nonrecoverable problem -> sleep forever
 	}
 } // end of void setup()
 
@@ -145,16 +142,7 @@ void setup()
 void loop()
 {
 	Serial.println("Preparing to sleep...");
-	Serial.print("Disconnecting WiFi...");
-	WiFi.disconnect();
-	
-	for (int i=0; WiFi.status() == WL_CONNECTED && i < 10; i++)
-	{
-		Serial.println(".");
-		delay(10);
-	}
-	delay(50);
-	Serial.print("disconnected. Sleeping for ");
+	Serial.print("Sleeping for ");
 	Serial.print(sleepSeconds);
 	Serial.println(" seconds.");
 	ESP.deepSleep(sleepSeconds * 1000000); // convert to microseconds

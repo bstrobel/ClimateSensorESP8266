@@ -16,6 +16,7 @@ void Config::parseStringLineToSettings(const std::string &strLine)
     string param_value;
     char cmt{'#'};
     const char * const delimiters = " \t\n";
+    const char * const eolchars = "\r\n";
     // Eat leading whitespace
     size_t i = strLine.find_first_not_of(delimiters);
     if (i == string::npos)
@@ -28,9 +29,12 @@ void Config::parseStringLineToSettings(const std::string &strLine)
     size_t k = strLine.find_first_not_of(delimiters, j);
     if (k == string::npos)
         return;
-
+    size_t l = strLine.find_first_of(eolchars, k);
+    if (l == string::npos)
+        l = strLine.length();
     param_name = strLine.substr(i,j-i);
-    param_value = strLine.substr(k);
+    param_value = strLine.substr(k,l-k);
+    
     Config::settings[param_name] = param_value;
 
 }
@@ -60,3 +64,9 @@ float Config::getSettingAsFloat(const string &key)
 {
     return strtof(Config::getSetting(key).c_str(),nullptr);
 }
+
+bool Config::hasSettingValue(const std::string &key, const std::string &val)
+{
+    string actual_val = getSetting(key);
+    return actual_val == val;
+};
