@@ -45,7 +45,6 @@
 #include <exception>
 #include <unistd.h>
 
-using namespace std;
 
 long sleepSeconds{SLEEP_SECONDS_FAIL};
 
@@ -125,7 +124,7 @@ void setup()
 		Serial.println("Wifi error:");
 		Serial.println(ex.what());
 	}
-	catch (exception &ex)
+	catch (std::exception &ex)
 	{
 		Serial.println("General error:");
 		Serial.println(ex.what());

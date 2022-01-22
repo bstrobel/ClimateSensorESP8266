@@ -3,13 +3,12 @@
 #include <sstream>
 #include "MCMQTTClient.h"
 
-using namespace std;
 
 MCMQTTClient::MCMQTTClient(
-        const string &_sensor_hostname, 
-        const string &_mqtt_client_id, 
-        const string &_topic_stub, 
-        const string &_stat_topic_stub):
+        const std::string &_sensor_hostname, 
+        const std::string &_mqtt_client_id, 
+        const std::string &_topic_stub, 
+        const std::string &_stat_topic_stub):
         sensor_hostname{_sensor_hostname},
         mqtt_client_id{_mqtt_client_id}
 {
@@ -28,7 +27,7 @@ MCMQTTClient::~MCMQTTClient()
     }
 }
 
-void MCMQTTClient::connect(const string &mqtt_server)
+void MCMQTTClient::connect(const std::string &mqtt_server)
 {
      mqttClient.setServer(mqtt_server.c_str(), 1883);
      // Loop until we're reconnected
@@ -45,7 +44,7 @@ void MCMQTTClient::connect(const string &mqtt_server)
              i++;
              if (i > MQTT_NUM_RETRIES)
              {
-                 stringstream msg;
+                 std::stringstream msg;
                  msg << "Max retries (" << MQTT_NUM_RETRIES << ") reached! Last rc=" << mqttClient.state();
                  throw MCMQTTClientException(msg.str());
              }
@@ -64,24 +63,24 @@ void MCMQTTClient::disconnect()
 
 bool MCMQTTClient::connected() {return mqttClient.connected();}
 
-void MCMQTTClient::sendStatus(const string &s)
+void MCMQTTClient::sendStatus(const std::string &s)
 {
     mqttClient.publish(stat_topic.c_str(), s.c_str());
 }
 
 void MCMQTTClient::publishFloat(const char* topic, float val)
 {
-    stringstream valss;
+    std::stringstream valss;
     valss << val;
     if (mqttClient.state())
     {
-        stringstream s;
-        s << "Could not send msg  to topic " << string(topic) << " because MQTT ClientState=" << mqttClient.state();
+        std::stringstream s;
+        s << "Could not send msg  to topic " << std::string(topic) << " because MQTT ClientState=" << mqttClient.state();
         throw MCMQTTClientException(s.str().c_str());
     }
     if (!mqttClient.publish(topic,valss.str().c_str(), MQTT_MSG_RETAINED))
     {
-        throw MCMQTTClientException("Could not send value " + valss.str() + " to topic " + string(topic));
+        throw MCMQTTClientException("Could not send value " + valss.str() + " to topic " + std::string(topic));
     }
 }
 

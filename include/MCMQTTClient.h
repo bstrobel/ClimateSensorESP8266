@@ -53,7 +53,6 @@
 #define MQTT_RETRY_DELAY_MSECS (500) // msecs to wait between retries while connecting to MQTT broker
 
 
-using namespace std;
 
 class MCMQTTClientException final: public std::runtime_error
 {
@@ -65,23 +64,23 @@ class MCMQTTClient final
 {
 public:
     MCMQTTClient(
-        const string &sensor_hostname, 
-        const string &mqtt_client_id, 
-        const string &topic_stub, 
-        const string &stat_topic_stub);
+        const std::string &sensor_hostname, 
+        const std::string &mqtt_client_id, 
+        const std::string &topic_stub, 
+        const std::string &stat_topic_stub);
     ~MCMQTTClient();
     void sendMeasurements(const MeasureClimate &m);
     void sendVoltage(float v);
-    void sendStatus(const string &s);
-    void connect(const string &mqtt_server);
+    void sendStatus(const std::string &s);
+    void connect(const std::string &mqtt_server);
     void disconnect();
     bool connected();
 private:
     void publishFloat(const char* topic, float val);
-    string sensor_hostname;
-    string mqtt_client_id;
-    string topic_prefix;
-    string stat_topic;
+    std::string sensor_hostname;
+    std::string mqtt_client_id;
+    std::string topic_prefix;
+    std::string stat_topic;
 
     WiFiClient wifiClientEsp;
     PubSubClient mqttClient;

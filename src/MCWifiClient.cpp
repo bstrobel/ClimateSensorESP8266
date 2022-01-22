@@ -5,9 +5,8 @@
 #include "common_def.h"
 #include "MCWifiClient.h"
 
-using namespace std;
 
-MCWifiClient::MCWifiClient(const string &_sensor_hostname):
+MCWifiClient::MCWifiClient(const std::string &_sensor_hostname):
     sensor_hostname{_sensor_hostname},
     flConnected{false}
 {
@@ -20,7 +19,7 @@ MCWifiClient::~MCWifiClient()
     disconnect();
 }
 
-void MCWifiClient::connect(const string &ssid, const string &pass)
+void MCWifiClient::connect(const std::string &ssid, const std::string &pass)
 {
     if (!flConnected)
     {
@@ -50,18 +49,18 @@ void MCWifiClient::disconnect()
 
 bool MCWifiClient::connected() {return flConnected;}
 
-const string MCWifiClient::toString()
+const std::string MCWifiClient::toString()
 {
-    stringstream strm;
-    strm << "Hostname: " << sensor_hostname << endl;
+    std::stringstream strm;
+    strm << "Hostname: " << sensor_hostname << std::endl;
     if (flConnected)
     {
-        strm << "SSID: " << ssid << endl;
-        strm << "Status: Connected" << endl;
+        strm << "SSID: " << ssid << std::endl;
+        strm << "Status: Connected" << std::endl;
     }
     else
     {
-        strm << "Status: Not connected" << endl;
+        strm << "Status: Not connected" << std::endl;
     }
     return strm.str();
 }

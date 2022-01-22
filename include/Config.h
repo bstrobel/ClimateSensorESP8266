@@ -38,9 +38,8 @@
 #include <stdexcept>
 #include <string>
 
-using namespace std;
 
-class ConfigException final: public runtime_error
+class ConfigException final: public std::runtime_error
 {
 public:
     ConfigException(const std::string &msg): runtime_error(msg.c_str()){};

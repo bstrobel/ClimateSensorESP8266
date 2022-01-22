@@ -11,7 +11,6 @@
 #include <stdexcept>
 #include <string>
 
-using namespace std;
 
 class MCWifiClientException final: public std::runtime_error
 {
@@ -23,16 +22,16 @@ class MCWifiClient final
 {
 public:
     MCWifiClient(
-        const string &sensor_hostname
+        const std::string &sensor_hostname
     );
     ~MCWifiClient();
-    void connect(const string &ssid, const string &pass);
+    void connect(const std::string &ssid, const std::string &pass);
     void disconnect();
     bool connected();
-    const string toString();
+    const std::string toString();
 private:
-    string sensor_hostname;
-    string ssid;
+    std::string sensor_hostname;
+    std::string ssid;
     bool flConnected;
 };
 #endif // MCWIFICLIENT_H

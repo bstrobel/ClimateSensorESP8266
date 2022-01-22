@@ -3,7 +3,6 @@
 #include <Adafruit_BME280.h>
 #include "MeasureClimate.h"
 
-using namespace std;
 
 MeasureClimate::MeasureClimate(float elevation)
 {
@@ -49,14 +48,14 @@ void MeasureClimate::calcPressureRel(float elevation)
     pressure_rel = (((pressure_abs * 100.0F)/pow(1.0F-(elevation/44330.0F), 5.255F))/100.0F);
 };
 
-const string MeasureClimate::toString()
+const std::string MeasureClimate::toString()
 {
-    stringstream s;
-    s << "Temperature: " << temperature << "°C" << endl;
-    s << "Dew Point: " << dewpoint_temp << "°C" << endl;
-    s << "Humidity: " << humidity << "%" << endl;
-    s << "Humidity adjusted: " << humidity_adj << "%" << endl;
-    s << "Air Pressure absolute: " << pressure_abs << "hPa" << endl;
-    s << "Air Pressure relative: " << pressure_rel << "hPa" << endl;
+    std::stringstream s;
+    s << "Temperature: " << temperature << "°C" << std::endl;
+    s << "Dew Point: " << dewpoint_temp << "°C" << std::endl;
+    s << "Humidity: " << humidity << "%" << std::endl;
+    s << "Humidity adjusted: " << humidity_adj << "%" << std::endl;
+    s << "Air Pressure absolute: " << pressure_abs << "hPa" << std::endl;
+    s << "Air Pressure relative: " << pressure_rel << "hPa" << std::endl;
     return s.str();
 }
