@@ -39,6 +39,7 @@
 #include "MeasureClimate.h"
 #include "MCWifiClient.h"
 #include "MCMQTTClient.h"
+#include "MCDisplay.h"
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -53,42 +54,44 @@ void setup()
 
 	Serial.begin(115200);
 	Serial.println();
-	Serial.println("Start of Climate Sensor V1.00");
+	Serial.println(F("Start of Climate Sensor V1.00"));
+	MCDisplay d;
 	try
 	{
-		Serial.print("### Settings parsed from ");
+		Serial.print(F("### Settings parsed from "));
 		Serial.print(SETTINGS_FILE);
-		Serial.println(" ###");
+		Serial.println(F(" ###"));
 		Config_ESP8266 cfg(SETTINGS_FILE);
 
 		Serial.print(cfg.toString().c_str());
-		Serial.println("### Done parsing settings ###");
+		Serial.println(F("### Done parsing settings ###"));
 		sleepSeconds = cfg.getSettingAsLongInt(CFG_KEY_SLEEP_TIME_SECONDS);
 
-		Serial.print("Checking battery voltage...");
+		Serial.print(F("Checking battery voltage..."));
 		float voltage = analogRead(A0) * cfg.getSettingAsFloat(CFG_KEY_VOLTAGE_CALIBRATION_FACTOR) / 1024;
 		Serial.print(voltage, 2); // print with 2 decimal places
 		Serial.println("V");
 		if (voltage < cfg.getSettingAsFloat(CFG_KEY_LOW_VOLTAGE))
 		{
 			sleepSeconds = 0;
-			Serial.print("Battery voltage below threshold of ");
+			Serial.print(F("Battery voltage below threshold of "));
 			Serial.print(cfg.getSetting(CFG_KEY_LOW_VOLTAGE).c_str());
-			Serial.println("V. Sleeping forever");
+			Serial.println(F("V. Sleeping forever"));
 			return;
 		}
-		Serial.println("Voltage good.");
+		Serial.println(F("Voltage good."));
 
-		Serial.print("Starting measurements...");
+		Serial.print(F("Starting measurements..."));
 		MeasureClimate mc(cfg.getSettingAsFloat(CFG_KEY_ELEVATION));
 
-		Serial.println("done.");
+		Serial.println(F("done."));
 		Serial.print(mc.toString().c_str());
+		d.displayWeatherData(mc);
 
-		Serial.print("Opening the WiFi connection...");
+		Serial.print(F("Opening the WiFi connection..."));
 		MCWifiClient wificlient(cfg.getSetting(CFG_KEY_SENSOR_HOSTNAME));
 		wificlient.connect(cfg.getSetting(CFG_KEY_SSID),cfg.getSetting(CFG_KEY_PASS));
-		Serial.println("connected!");
+		Serial.println(F("connected!"));
 
 		MCMQTTClient mqtt(
 			cfg.getSetting(CFG_KEY_SENSOR_HOSTNAME),
@@ -96,43 +99,55 @@ void setup()
 			cfg.getSetting(CFG_KEY_MQTT_TOPIC_STUB),
 			cfg.getSetting(CFG_KEY_MQTT_STAT_TOPIC_STUB)
 			);
-		Serial.print("Sending values to MQTT...");
+		Serial.print(F("Sending values to MQTT..."));
 		mqtt.connect(cfg.getSetting(CFG_KEY_MQTT_SERVER));
 		mqtt.sendMeasurements(mc);
 		mqtt.sendVoltage(voltage);
-		Serial.println("finished.");
+		Serial.println(F("finished."));
 	}
 	catch (ConfigException &ex)
 	{
-		Serial.println("Configuration error:");
+		const char* who = "Configuration error";
+		Serial.println(who);
 		Serial.println(ex.what());
+		d.displayError(who,ex.what());
 		sleepSeconds = 0; // nonrecoverable problem -> sleep forever
 	}
 	catch (MeasurementException &ex)
 	{
-		Serial.println("Measurement error:");
+		const char* who = "Measurement error";
+		Serial.println(who);
 		Serial.println(ex.what());
+		d.displayError(who,ex.what());
 		sleepSeconds = 0; // nonrecoverable problem -> sleep forever
 	}
 	catch (MCMQTTClientException &ex)
 	{
-		Serial.println("MQTT error:");
+		const char* who = "MQTT error";
+		Serial.println(who);
 		Serial.println(ex.what());
+		d.displayError(who,ex.what());
 	}
 	catch (MCWifiClientException &ex)
 	{
-		Serial.println("Wifi error:");
+		const char* who = "Wifi error";
+		Serial.println(who);
 		Serial.println(ex.what());
+		d.displayError(who,ex.what());
 	}
 	catch (std::exception &ex)
 	{
-		Serial.println("General error:");
+		const char* who = "General error";
+		Serial.println(who);
 		Serial.println(ex.what());
+		d.displayError(who,ex.what());
 		sleepSeconds = 0; // nonrecoverable problem -> sleep forever
 	}
 	catch (...)
 	{
-		Serial.println("General error!");
+		const char* who = "General error";
+		Serial.println(who);
+		d.displayError(who,"Error unknown");
 		sleepSeconds = 0; // nonrecoverable problem -> sleep forever
 	}
 } // end of void setup()
