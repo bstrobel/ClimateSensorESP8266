@@ -40,60 +40,62 @@
 #include "MCWifiClient.h"
 #include "MCMQTTClient.h"
 #include "MCDisplay.h"
+#include "MCLogSerial.h"
 #include <string>
 #include <iostream>
 #include <sstream>
 #include <exception>
 #include <unistd.h>
+#include <rtc_memory.h>
 
+// https://github.com/fabianoriccardi/rtcmemory
+typedef struct {
+	uint8_t warmBoot;
+} RTCState;
+
+RTCState* rtcState;
+
+RtcMemory rtcMemory;
+bool isWarmBoot=false;
 
 long sleepSeconds{SLEEP_SECONDS_FAIL};
 
+MCLogSerial l;
+
 void setup()
 {
-
-	Serial.begin(115200);
-	Serial.println();
-	Serial.println(F("Start of Climate Sensor V1.00"));
-	MCDisplay d;
+	MCDisplay d; // this cannot be in the global space, doesn"t work
+	isWarmBoot = rtcMemory.begin();
+	rtcState = rtcMemory.getData<RTCState>();
+	if (isWarmBoot)
+		l.logWarmBoot();
+	else
+		l.logColdBoot();
 	try
 	{
-		Serial.print(F("### Settings parsed from "));
-		Serial.print(SETTINGS_FILE);
-		Serial.println(F(" ###"));
 		Config_ESP8266 cfg(SETTINGS_FILE);
+		l.logConfig(cfg);
 
-		Serial.print(cfg.toString().c_str());
-		Serial.println(F("### Done parsing settings ###"));
 		sleepSeconds = cfg.getSettingAsLongInt(CFG_KEY_SLEEP_TIME_SECONDS);
 
 		#ifdef CHECK_BATTERY_VOLTAGE
-		Serial.print(F("Checking battery voltage..."));
 		float voltage = analogRead(A0) * cfg.getSettingAsFloat(CFG_KEY_VOLTAGE_CALIBRATION_FACTOR) / 1024;
-		Serial.print(voltage, 2); // print with 2 decimal places
-		Serial.println("V");
 		if (voltage < cfg.getSettingAsFloat(CFG_KEY_LOW_VOLTAGE))
 		{
+			l.logVoltageTooLow(cfg.getSetting(CFG_KEY_LOW_VOLTAGE));
 			sleepSeconds = 0;
-			Serial.print(F("Battery voltage below threshold of "));
-			Serial.print(cfg.getSetting(CFG_KEY_LOW_VOLTAGE).c_str());
-			Serial.println(F("V. Sleeping forever"));
 			return;
 		}
-		Serial.println(F("Voltage good."));
 		#endif //CHECK_BATTERY_VOLTAGE
 
-		Serial.print(F("Starting measurements..."));
 		MeasureClimate mc(cfg.getSettingAsFloat(CFG_KEY_ELEVATION));
-
-		Serial.println(F("done."));
 		Serial.print(mc.toString().c_str());
+		l.logWeatherData(mc);
 		d.displayWeatherData(mc);
 
-		Serial.print(F("Opening the WiFi connection..."));
 		MCWifiClient wificlient(cfg.getSetting(CFG_KEY_SENSOR_HOSTNAME));
 		wificlient.connect(cfg.getSetting(CFG_KEY_SSID),cfg.getSetting(CFG_KEY_PASS));
-		Serial.println(F("connected!"));
+		l.logWifiConnected();
 
 		MCMQTTClient mqtt(
 			cfg.getSetting(CFG_KEY_SENSOR_HOSTNAME),
@@ -101,57 +103,50 @@ void setup()
 			cfg.getSetting(CFG_KEY_MQTT_TOPIC_STUB),
 			cfg.getSetting(CFG_KEY_MQTT_STAT_TOPIC_STUB)
 			);
-		Serial.print(F("Sending values to MQTT..."));
 		mqtt.connect(cfg.getSetting(CFG_KEY_MQTT_SERVER));
 		mqtt.sendMeasurements(mc);
 		#ifdef CHECK_BATTERY_VOLTAGE
 		mqtt.sendVoltage(voltage);
 		#endif //CHECK_BATTERY_VOLTAGE
-		Serial.println(F("finished."));
+		l.logMQTTsent();
 	}
 	catch (ConfigException &ex)
 	{
-		const char* who = "Configuration error";
-		Serial.println(who);
-		Serial.println(ex.what());
+		const static char* PROGMEM who = "Configuration error";
+		l.logError(who,ex.what());
 		d.displayError(who,ex.what());
 		sleepSeconds = 0; // nonrecoverable problem -> sleep forever
 	}
 	catch (MeasurementException &ex)
 	{
-		const char* who = "Measurement error";
-		Serial.println(who);
-		Serial.println(ex.what());
+		const static char* PROGMEM who = "Measurement error";
+		l.logError(who,ex.what());
 		d.displayError(who,ex.what());
 		sleepSeconds = 0; // nonrecoverable problem -> sleep forever
 	}
 	catch (MCMQTTClientException &ex)
 	{
-		const char* who = "MQTT error";
-		Serial.println(who);
-		Serial.println(ex.what());
+		const static char* PROGMEM who = "MQTT error";
+		l.logError(who,ex.what());
 		d.displayError(who,ex.what());
 	}
 	catch (MCWifiClientException &ex)
 	{
-		const char* who = "Wifi error";
-		Serial.println(who);
-		Serial.println(ex.what());
+		const static char* who PROGMEM = "Wifi error";
+		l.logError(who,ex.what());
 		d.displayError(who,ex.what());
 	}
 	catch (std::exception &ex)
 	{
-		const char* who = "General error";
-		Serial.println(who);
-		Serial.println(ex.what());
+		const static char* who PROGMEM = "General error";
+		l.logError(who,ex.what());
 		d.displayError(who,ex.what());
 		sleepSeconds = 0; // nonrecoverable problem -> sleep forever
 	}
 	catch (...)
 	{
 		const char* who = "General error";
-		Serial.println(who);
-		d.displayError(who,"Error unknown");
+		l.logError(who,"");
 		sleepSeconds = 0; // nonrecoverable problem -> sleep forever
 	}
 } // end of void setup()
@@ -159,9 +154,8 @@ void setup()
 //loop is used to shut down the controller and sleep
 void loop()
 {
-	Serial.println("Preparing to sleep...");
-	Serial.print("Sleeping for ");
-	Serial.print(sleepSeconds);
-	Serial.println(" seconds.");
+	rtcState->warmBoot = true;
+	rtcMemory.save();
+	l.logSleep(sleepSeconds);
 	ESP.deepSleep(sleepSeconds * 1000000); // convert to microseconds
 }
