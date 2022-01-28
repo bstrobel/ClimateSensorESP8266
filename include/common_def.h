@@ -23,5 +23,6 @@
 
 #define WIFI_NUM_RETRIES (20) // Number of retries when connecting to WiFI
 #define WIFI_RETRY_DELAY_MSECS (500) // msecs to wait between retries while connecting to WiFI
+// #define CHECK_BATTERY_VOLTAGE // Enables or disables the check of the battery voltag. Pin A0 needs to be connected to an apropriate voltage devider for this.
 
 #endif

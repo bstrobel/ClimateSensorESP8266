@@ -67,6 +67,7 @@ void setup()
 		Serial.println(F("### Done parsing settings ###"));
 		sleepSeconds = cfg.getSettingAsLongInt(CFG_KEY_SLEEP_TIME_SECONDS);
 
+		#ifdef CHECK_BATTERY_VOLTAGE
 		Serial.print(F("Checking battery voltage..."));
 		float voltage = analogRead(A0) * cfg.getSettingAsFloat(CFG_KEY_VOLTAGE_CALIBRATION_FACTOR) / 1024;
 		Serial.print(voltage, 2); // print with 2 decimal places
@@ -80,6 +81,7 @@ void setup()
 			return;
 		}
 		Serial.println(F("Voltage good."));
+		#endif //CHECK_BATTERY_VOLTAGE
 
 		Serial.print(F("Starting measurements..."));
 		MeasureClimate mc(cfg.getSettingAsFloat(CFG_KEY_ELEVATION));
@@ -102,7 +104,9 @@ void setup()
 		Serial.print(F("Sending values to MQTT..."));
 		mqtt.connect(cfg.getSetting(CFG_KEY_MQTT_SERVER));
 		mqtt.sendMeasurements(mc);
+		#ifdef CHECK_BATTERY_VOLTAGE
 		mqtt.sendVoltage(voltage);
+		#endif //CHECK_BATTERY_VOLTAGE
 		Serial.println(F("finished."));
 	}
 	catch (ConfigException &ex)
